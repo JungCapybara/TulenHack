@@ -803,4 +803,168 @@ local function createToolGive()
     giveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     giveButton.Text = "Выдать предмет"
     giveButton.Font = Enum.Font.GothamBold
-   
+    giveButton.TextSize = 14
+    giveButton.BorderSizePixel = 0
+    
+    giveCorner.Parent = giveButton
+    giveCorner.CornerRadius = UDim.new(0, 6)
+    
+    -- Функция обновления списка предметов
+    local function updateToolsList()
+        toolsList:ClearAllChildren()
+        tools = {}
+        
+        -- Ищем все инструменты в рабочем месте
+        for _, item in pairs(workspace:GetDescendants()) do
+            if item:IsA("Tool") then
+                table.insert(tools, item)
+            end
+        end
+        
+        -- Ищем в ReplicatedStorage
+        for _, item in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+            if item:IsA("Tool") then
+                table.insert(tools, item)
+            end
+        end
+        
+        -- Ищем в ServerStorage
+        for _, item in pairs(game:GetService("ServerStorage"):GetDescendants()) do
+            if item:IsA("Tool") then
+                table.insert(tools, item)
+            end
+        end
+        
+        -- Создаем элементы списка
+        local yOffset = 0
+        for i, tool in ipairs(tools) do
+            local toolButton = Instance.new("TextButton")
+            local toolCorner = Instance.new("UICorner")
+            
+            toolButton.Parent = toolsList
+            toolButton.Size = UDim2.new(1, -10, 0, 30)
+            toolButton.Position = UDim2.new(0, 5, 0, yOffset)
+            toolButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            toolButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            toolButton.Text = tool.Name
+            toolButton.Font = Enum.Font.Gotham
+            toolButton.TextSize = 12
+            toolButton.BorderSizePixel = 0
+            
+            toolCorner.Parent = toolButton
+            toolCorner.CornerRadius = UDim.new(0, 4)
+            
+            toolButton.MouseButton1Click:Connect(function()
+                selectedTool = tool
+                -- Подсвечиваем выбранный предмет
+                for _, btn in pairs(toolsList:GetChildren()) do
+                    if btn:IsA("TextButton") then
+                        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                    end
+                end
+                toolButton.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+            end)
+            
+            yOffset = yOffset + 35
+        end
+        
+        toolsList.CanvasSize = UDim2.new(0, 0, 0, yOffset)
+    end
+    
+    -- Функция выдачи предмета
+    local function giveTool()
+        if selectedTool then
+            local clone = selectedTool:Clone()
+            clone.Parent = player.Backpack
+            print("Выдан предмет: " .. selectedTool.Name)
+        else
+            print("Выберите предмет из списка!")
+        end
+    end
+    
+    -- Обработчики событий
+    refreshButton.MouseButton1Click:Connect(updateToolsList)
+    giveButton.MouseButton1Click:Connect(giveTool)
+    
+    -- Первоначальное обновление списка
+    updateToolsList()
+end
+
+-- Функции переключения табов
+local function switchTab(selectedTab)
+    MainContainer.Visible = (selectedTab == "Main")
+    TeleportContainer.Visible = (selectedTab == "Teleport")
+    MiscContainer.Visible = (selectedTab == "Misc")
+    
+    MainTab.BackgroundColor3 = (selectedTab == "Main") and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(60, 60, 60)
+    TeleportTab.BackgroundColor3 = (selectedTab == "Teleport") and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(60, 60, 60)
+    MiscTab.BackgroundColor3 = (selectedTab == "Misc") and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(60, 60, 60)
+    
+    if selectedTab == "Main" then
+        -- Обновляем список игроков при открытии Main таба
+        MainContainer:ClearAllChildren()
+        createMainButtons()
+        createSeparator(135, "СПИСОК ИГРОКОВ")
+        populatePlayersList()
+    end
+end
+
+-- Обработчики событий
+MainTab.MouseButton1Click:Connect(function()
+    switchTab("Main")
+end)
+
+TeleportTab.MouseButton1Click:Connect(function()
+    switchTab("Teleport")
+end)
+
+MiscTab.MouseButton1Click:Connect(function()
+    switchTab("Misc")
+end)
+
+-- Управление меню
+local function toggleMenu()
+    MainFrame.Visible = not MainFrame.Visible
+    UIBlur.Enabled = MainFrame.Visible
+    
+    if MainFrame.Visible then
+        -- Обновляем информацию при открытии
+        switchTab("Main")
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == MENU_KEY then
+        toggleMenu()
+    end
+end)
+
+-- Заполнение табов
+switchTab("Main")
+populateTeleportTab()
+changeMenuKey()
+createToolGive()
+
+-- Увеличиваем размер Misc контейнера для новых функций
+MiscContainer.CanvasSize = UDim2.new(0, 0, 0, 350)
+
+-- Запуск обновлений
+RunService.Heartbeat:Connect(updateESP)
+
+-- Обработка новых игроков
+Players.PlayerAdded:Connect(function(newPlayer)
+    if ESPEnabled and newPlayer ~= player then
+        createESP(newPlayer)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(leftPlayer)
+    removeESP(leftPlayer)
+end)
+
+print("Province RP Menu by Tulen Hack загружен!")
+print("Открыть меню: " .. tostring(MENU_KEY):gsub("Enum.KeyCode.", ""))
+print("Новые функции в Main:")
+print("- ESP: Отслеживание игроков")
+print("- FullBright: Постоянная видимость в темноте")
+print("- Fling: Полёт и вращение (WASD + Space/Shift)")
